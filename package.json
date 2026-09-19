@@ -1,0 +1,13 @@
+{
+  "name": "codex-jev-model-router",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "codex-auto": "./scripts/codex-auto.mjs",
+    "jev-route": "./scripts/route.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
