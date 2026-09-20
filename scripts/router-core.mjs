@@ -7,21 +7,19 @@ const DEFAULT_GATEWAY_URL = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model
 
 export const MODEL_CATALOG = Object.freeze({
   "gpt-5.6-luna":
-    "Fast and affordable. Choose for narrow, low-risk, well-specified tasks such as small edits, formatting, simple questions, or mechanical transformations.",
-  "gpt-5.6-terra":
-    "Balanced intelligence, speed, and cost. Choose for focused coding, repository exploration, document analysis, or reviews with clear scope and moderate complexity.",
+    "Fast model for easy, narrow, low-risk, well-specified tasks and mechanical continuations. Do not choose it merely to save cost when the task needs the reliability of Sol.",
   "gpt-5.6-sol":
-    "Reliable everyday agentic workhorse. Choose for multi-file implementation, debugging, testing, research, and tasks needing sustained tool use or careful follow-through.",
+    "Default workhorse for most tasks, including implementation, debugging, testing, research, repository exploration, and sustained tool use.",
   "gpt-6-astra":
-    "Most capable model. Choose for difficult architecture, security, high-stakes decisions, ambiguous cross-system work, novel problems, or tasks where maximizing correctness dominates cost and latency.",
+    "Frontier model reserved for genuinely hard, ambiguous, high-stakes, or novel tasks that Sol is unlikely to get right.",
 });
 
 export const EFFORT_CATALOG = Object.freeze({
-  low: "Straightforward work with little ambiguity or planning.",
-  medium: "Normal implementation or analysis requiring several connected steps.",
+  low: "Light reasoning for a task that is slightly easier than the model's normal workload.",
+  medium: "Default reasoning for Sol and Astra on most tasks.",
   high: "Complex work requiring careful planning, validation, or debugging.",
-  xhigh: "Very difficult, ambiguous, high-stakes, or long-horizon work.",
-  max: "Exceptional tasks that should prioritize solution quality over latency and cost.",
+  xhigh: "Default reasoning for Luna; also available for unusually deep work on stronger models.",
+  max: "Maximum reasoning; use for Luna only when the easy task still benefits from its deepest reasoning, or for exceptional hard tasks.",
 });
 
 const SECRET_PATTERNS = [
@@ -40,13 +38,13 @@ export function buildQuestions() {
     model: {
       type: "choice",
       instructions:
-        "Select the single best Codex model for completing the user's task. Optimize primarily for successful completion and correctness, then latency and cost. Respect an explicit user model request.",
+        "Select the single best Codex model for completing this task. Luna is only for easy, narrow, low-risk work. Sol is the default for most tasks. Choose Astra only for genuinely hard, ambiguous, risky, or novel work that Sol is unlikely to get right. Optimize for successful completion and correctness before latency and cost. Respect an explicit supported model request.",
       criteria: MODEL_CATALOG,
     },
     effort: {
       type: "choice",
       instructions:
-        "Select the reasoning effort appropriate for this task. Prefer the lowest effort that preserves a high probability of correct, complete work.",
+        "Select reasoning effort together with the model tier. Luna may use only xhigh or max (normally xhigh). Sol and Astra should use medium for most tasks and low for slightly easier work; use higher effort only when the task clearly requires deeper reasoning.",
       criteria: EFFORT_CATALOG,
     },
     highStakes: {
@@ -62,6 +60,11 @@ function topProbability(answer) {
   return Math.max(...Object.values(answer.probabilities));
 }
 
+export function normalizeEffort(model, effort) {
+  if (model === "gpt-5.6-luna") return effort === "max" ? "max" : "xhigh";
+  return effort in EFFORT_CATALOG ? effort : "medium";
+}
+
 function normalizeRecommendation(body, currentModel) {
   const modelAnswer = body?.answers?.model;
   const effortAnswer = body?.answers?.effort;
@@ -71,20 +74,23 @@ function normalizeRecommendation(body, currentModel) {
   const modelConfidence = topProbability(modelAnswer);
   const highStakesProbability = highStakesAnswer?.probability ?? 0;
 
-  if (!(model in MODEL_CATALOG)) model = currentModel || "gpt-6-astra";
-  if (!(effort in EFFORT_CATALOG)) effort = "high";
+  const supportedCurrentModel = currentModel in MODEL_CATALOG ? currentModel : undefined;
+  if (!(model in MODEL_CATALOG)) model = supportedCurrentModel || "gpt-5.6-sol";
+  if (!(effort in EFFORT_CATALOG)) effort = "medium";
 
   const reasons = [];
   if (modelConfidence != null && modelConfidence < 0.55) {
-    model = "gpt-6-astra";
-    effort = "high";
-    reasons.push("low routing confidence; upgraded for correctness");
+    model = "gpt-5.6-sol";
+    effort = normalizeEffort(model, effort);
+    reasons.push("low routing confidence; held at the Sol default");
   }
   if (highStakesProbability >= 0.55) {
     model = "gpt-6-astra";
-    if (["low", "medium"].includes(effort)) effort = "high";
+    effort = normalizeEffort(model, effort === "low" ? "medium" : effort);
     reasons.push("high-stakes task; upgraded for safety");
   }
+
+  effort = normalizeEffort(model, effort);
 
   return {
     model,
@@ -112,9 +118,10 @@ export async function routePrompt(
   }
 
   if (containsLikelySecret(prompt)) {
+    const model = currentModel in MODEL_CATALOG ? currentModel : "gpt-5.6-sol";
     return {
-      model: currentModel || "gpt-6-astra",
-      effort: "high",
+      model,
+      effort: normalizeEffort(model, "medium"),
       reasons: ["routing skipped because the prompt may contain a secret"],
       source: "local-safety-fallback",
       skipped: true,

@@ -18,7 +18,13 @@ node ./scripts/codex-auto.mjs --exec -- "Review the current diff"
 node ./scripts/codex-auto.mjs --dry-run -- "Design a multi-region payment system"
 ```
 
-The router prioritizes task completion and correctness. Low-confidence and high-stakes classifications are upgraded to `gpt-6-astra` with at least `high` reasoning effort.
+The router uses three model tiers:
+
+- `gpt-5.6-luna` for easy, narrow tasks, always at `xhigh` or `max` effort;
+- `gpt-5.6-sol` as the default for most work, normally at `medium` effort (`low` for slightly easier work);
+- `gpt-6-astra` only for hard, ambiguous, risky, or novel work that Sol is unlikely to get right, normally at `medium` effort (`low` for slightly easier work).
+
+Codex calls light reasoning `low`. Low-confidence classifications are held at Sol instead of spending the frontier tier, following the quality-first middle-tier fallback used by the reference Jev router. High-stakes classifications are upgraded to Astra.
 
 ## Codex binary discovery
 

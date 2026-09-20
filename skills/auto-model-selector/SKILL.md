@@ -20,4 +20,5 @@ Use the bundled Jev router when the user asks to choose a model, route a Codex t
 - Require `AI_GATEWAY_API_KEY` in the local environment. Never ask the user to paste it into chat or print it.
 - The router sends the prompt to Vercel AI Gateway and TypeSafe Jev. Make that data flow clear before users enable automatic routing for sensitive work.
 - The router locally skips prompts that resemble credentials or private keys and selects a conservative fallback.
-- Treat Jev probabilities as routing evidence, not proof. The deterministic policy upgrades low-confidence or high-stakes tasks to GPT-6 Astra.
+- Treat Jev probabilities as routing evidence, not proof. The deterministic policy holds low-confidence choices at GPT-5.6 Sol and upgrades high-stakes tasks to GPT-6 Astra.
+- Recommend Luna only for easy tasks and always with `xhigh` or `max` effort. Use Sol for most tasks. Reserve Astra for hard tasks that Sol is unlikely to complete correctly.

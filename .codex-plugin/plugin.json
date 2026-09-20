@@ -1,11 +1,16 @@
 {
   "name": "codex-jev-model-router",
-  "version": "0.1.1",
+  "version": "0.1.1+codex.20260920035555",
   "description": "Select a Codex model and reasoning effort for each prompt with Jev.",
   "author": {
     "name": "Jianrong"
   },
-  "keywords": ["codex", "jev", "model-routing", "automation"],
+  "keywords": [
+    "codex",
+    "jev",
+    "model-routing",
+    "automation"
+  ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Jev Model Router",
@@ -13,7 +18,11 @@
     "longDescription": "Uses Jev to classify each task, recommend a Codex model and reasoning effort, and launch new Codex sessions with that configuration.",
     "developerName": "Jianrong",
     "category": "Productivity",
-    "capabilities": ["Model routing", "Lifecycle hooks", "Local launcher"],
+    "capabilities": [
+      "Model routing",
+      "Lifecycle hooks",
+      "Local launcher"
+    ],
     "defaultPrompt": [
       "Select the best Codex model for my task.",
       "Explain how Jev routed my prompt."
